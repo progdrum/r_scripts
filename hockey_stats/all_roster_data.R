@@ -21,6 +21,7 @@ get.sizes <- function(team) {
 
   roster$Ht <- as.integer(lapply(roster$Ht, ht.inches))
   roster$Wt <- as.numeric(levels(roster$Wt))[roster$Wt]
+  roster$Team <- team
   player.data <- as.data.frame(roster, stringsAsFactors = FALSE)
 }
 
