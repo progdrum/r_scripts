@@ -1,0 +1,4 @@
+# Rhistory and RData
+*.RData
+*.Rhistory
+
