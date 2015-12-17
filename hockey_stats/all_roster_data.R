@@ -1,11 +1,12 @@
 # Collect size data for each time for exploratory analysis
 
 library("XML")
+library("dplyr")
 
 # Bring in "all teams" data
 source("all_teams.R")
 
-get.sizes <- function(team) {
+get.team.data <- function(team) {
   player.data <- NULL
   tables <- readHTMLTable(
     paste("http://www.hockey-reference.com/teams/", team, "/2016.html", sep = ""))
@@ -26,5 +27,11 @@ get.sizes <- function(team) {
 }
 
 # Gather data and apply appropriate team names
-teams.size <- lapply(teams, get.sizes)
-names(teams.size) <- teams
+teams.data <- lapply(teams, get.team.data)
+names(teams.data) <- teams
+
+# Create a list of all players, regardless of team
+all.players <- rbind_all(teams.data)
+
+# Convert salary values to numerics
+all.players$Salary <- as.numeric(gsub(",", "", all.players$Salary))
