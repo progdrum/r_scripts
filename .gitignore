@@ -2,3 +2,6 @@
 *.RData
 *.Rhistory
 
+# Plot directories
+#/plots
+

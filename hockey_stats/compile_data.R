@@ -13,6 +13,9 @@ get.current <- function(team, current.season) {
   # Cut out some irrelevant rows/columns
   current.year <- tables$games[-c(21, 42, 63, 84), -c(14, 15)]
   
+  # Add ending year for season
+  current.year <- cbind(current.year, as.integer(current.season))
+  
   # Get fields into the types that we want
   current.year %>%
     mutate(GP = as.integer(GP),
@@ -32,6 +35,7 @@ get.current <- function(team, current.season) {
   colnames(current.year)[4] <- "Loc"
   colnames(current.year)[6] <- "Result"
   colnames(current.year)[7] <- "Extra"
+  colnames(current.year)[15] <- "Season"
   
   current.year
 }
@@ -51,4 +55,12 @@ compile.data <- function(files) {
   colnames(past.games)[7] <- "Extra"
   
   past.games
+}
+
+# Combine the above functions for an overall view
+compile.all <- function(team, current.season, files) {
+  past <- compile.data(files)
+  current <- get.current(team, current.season)
+  
+  rbind_all(list(current, past))
 }
