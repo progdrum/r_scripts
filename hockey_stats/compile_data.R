@@ -9,7 +9,24 @@ get.current <- function(team, current.season) {
   tables <- readHTMLTable(paste("http://hockey-reference.com/teams/", 
                                 team, "/", current.season, "_games.html", 
                                 sep = ""))
+  
+  # Cut out some irrelevant rows/columns
   current.year <- tables$games[-c(21, 42, 63, 84), -c(14, 15)]
+  
+  # Get fields into the types that we want
+  current.year %>%
+    mutate(GP = as.integer(GP),
+           Date = as.Date(Date),
+           Time = as.character(Time),
+           Opponent = as.character(Opponent),
+           Tm = as.integer(Tm),
+           Opp = as.integer(Opp),
+           W = as.integer(W),
+           L = as.integer(L),
+           OL = as.integer(OL)) -> current.year
+  
+  # Remove games yet-to-be-played
+  current.year <- current.year[complete.cases(current.year),]
   
   # Update some column names for clarity
   colnames(current.year)[4] <- "Loc"
@@ -23,6 +40,10 @@ get.current <- function(team, current.season) {
 compile.data <- function(files) {
   agg.data <- lapply(files, function(file) read.csv(file))
   past.games <- rbind_all(agg.data)
+  
+  # Field type transformation
+  past.games %>%
+    mutate(Date = as.Date(Date)) -> past.games
   
   # Update some column names for clarity
   colnames(past.games)[4] <- "Loc"
