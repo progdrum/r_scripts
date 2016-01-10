@@ -18,6 +18,12 @@ get.standings <- function() {
   central <- west[2:8,]
   pacific <- west[10:16,]
   
+  # Convert values to numerics (minus team names)
+  atlantic[,-1] <- apply(atlantic[,-1], 2, as.numeric)
+  metropolitan[,-1] <- apply(metropolitan[,-1], 2, as.numeric)
+  central[,-1] <- apply(central[,-1], 2, as.numeric)
+  pacific[,-1] <- apply(pacific[,-1], 2, as.numeric)
+  
   list(atlantic = atlantic, metropolitan = metropolitan, 
        central = central, pacific = pacific)
 }
