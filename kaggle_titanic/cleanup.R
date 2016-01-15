@@ -1,8 +1,10 @@
-# Do some data pre-processing and cleanup
-# It is assumed that the training dataset is "train" and the test set is 
-# "test". The stringsAsFactors argument should be FALSE.
+# Load Titanic data and do some data pre-processing and cleanup
 
 library(stringr)
+
+# Read in the data
+train <- read.csv("train.csv", stringsAsFactors = FALSE)
+test <- read.csv("test.csv", stringsAsFactors = FALSE)
 
 # Get some age-related information for filling in missing ages
 median.age <- median(train$Age, na.rm = TRUE)
@@ -14,11 +16,13 @@ median.fare <- median(train$Fare)
 # For males, "master" pretty much always means a boy of less than 18. For 
 # them, we'll give them the median age minus one standard deviation, 
 # guaranteeing a value less than 18 with the given data set.
-masters.train <- train[!is.na(str_locate(train$Name, "Master")[,1]),]
-masters.train$Age[is.na(masters.train$Age)] <- (median.age - sd.age)
+ageless.masters <- !is.na(str_locate(train$Name, "Master")[,1])
+empty.ages <- is.na(train[ageless.masters,]$Age)
+train[ageless.masters,]$Age[empty.ages] <- (median.age - sd.age)
 
-masters.test <- test[!is.na(str_locate(test$Name, "Master")[,1]),]
-masters.test$Age[is.na(masters.test$Age)] <- (median.age - sd.age)
+ageless.masters.test <- !is.na(str_locate(test$Name, "Master")[,1])
+empty.ages.test <- is.na(test[ageless.masters.test,]$Age)
+test[ageless.masters.test,]$Age[empty.ages.test] <- (median.age - sd.age)
 
 # For females, it gets a bit more complicated. "Miss" often refers to a 
 # girl under 18. However, it appears to occasionally reference adult women 
@@ -37,8 +41,21 @@ assign.age <- function() {
   }
 }
 
-misses.train <- train[!is.na(str_locate(train$Name, "Miss")[,1]),]
-misses.train$Age[is.na(misses.train$Age)] <- assign.age()
+timeless.ladies <- !is.na(str_locate(train$Name, "Miss")[,1])
+empty.ages <- is.na(train[timeless.ladies,]$Age)
+train[timeless.ladies,]$Age[empty.ages] <- assign.age()
 
-misses.test <- test[!is.na(str_locate(test$Name, "Miss")[,1]),]
-misses.test$Age[is.na(misses.test$Age)] <- assign.age()
+timeless.ladies.test <- !is.na(str_locate(test$Name, "Miss")[,1])
+empty.ages.test <- is.na(test[timeless.ladies.test,]$Age)
+test[timeless.ladies.test,]$Age[empty.ages.test] <- assign.age()
+
+# Let's not forget the adult gents, the remaining ladies, and their ages
+train[is.na(train$Age),]$Age <- median.age
+test[is.na(test$Age),]$Age <- median.age
+
+# Now we fill in the missing fare in the test set
+test$Fare[is.na(test$Fare)] <- median.fare
+
+# Finally, let's add a column indicating whether or not one is a child
+train$Child <- train$Age < 18
+test$Child <- test$Age < 18
