@@ -59,3 +59,6 @@ test$Fare[is.na(test$Fare)] <- median.fare
 # Finally, let's add a column indicating whether or not one is a child
 train$Child <- train$Age < 18
 test$Child <- test$Age < 18
+
+# We do, however, want to be sure that "Survived" is a factor
+train$Survived <- as.factor(train$Survived)
