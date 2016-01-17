@@ -2,6 +2,8 @@
 
 library(caret)
 
+set.seed(999)
+
 # Random Forest
 rf1 <- train(Survived ~ Pclass + Fare + Sex + Child + SibSp + Parch, 
              data = train, method = "rf", importance = TRUE)
