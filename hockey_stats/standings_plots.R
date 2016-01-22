@@ -2,9 +2,13 @@
 
 source("standings_summaries.R")
 
-win.avgs <- data.frame(atlantic = atlantic.avg.W,
-                       metropolitan = metropolitan.avg.W,
-                       central = central.avg.W,
-                       pacific = pacific.avg.W)
+division.names <- c("atlantic", "metropolitan", "central", "pacific")
+wins <- c(atlantic.avg.W, metropolitan.avg.W, central.avg.W, pacific.avg.W)
 
-ggplot(data = win.avgs) + geom_bar(x = win.avgs)
+win.avgs <- cbind.data.frame(division.names, wins)
+colnames(win.avgs) <- c("Divisions", "Wins")
+
+p <- ggplot(win.avgs, aes(x = Divisions, y = Wins, fill = Divisions)) + 
+  geom_bar(stat = "identity") + ggtitle("Average Wins By Division (NHL)")
+
+plot(p)
