@@ -62,5 +62,8 @@ compile.all <- function(team, current.season, files) {
   past <- compile.data(files)
   current <- get.current(team, current.season)
   
-  rbind_all(list(current, past))
+  all.games <- rbind_all(list(current, past))
+  
+  # Order the games by date
+  all.games[order(all.games$Date),]
 }
