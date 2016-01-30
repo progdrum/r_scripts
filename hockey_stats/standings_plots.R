@@ -69,34 +69,34 @@ colnames(stack.meds) <- c("Divisions", "Wins", "Losses", "OT.Losses")
 stack.meds2 <- melt(stack.meds, id.vars = "Divisions")
 
 win.sds <- cbind.data.frame(division.names, wins.sd)
-colnames(win.sds) <- c("Divisions", "Wins")
+colnames(win.sds) <- c("Divisions", "Wins.SD")
 
 loss.sds <- cbind.data.frame(division.names, losses.sd)
-colnames(loss.sds) <- c("Divisions", "Losses")
+colnames(loss.sds) <- c("Divisions", "Losses.SD")
 
 ol.sds <- cbind.data.frame(division.names, ols.sd)
-colnames(ol.sds) <- c("Divisions", "OT.Losses")
+colnames(ol.sds) <- c("Divisions", "OT.Losses.SD")
 
 pts.sds <- cbind.data.frame(division.names, pts.sd)
-colnames(pts.sds) <- c("Divisions", "Points")
+colnames(pts.sds) <- c("Divisions", "Points.SD")
 
 ptsp.sds <- cbind.data.frame(division.names, ptsp.sd)
-colnames(ptsp.sds) <- c("Divisions", "Points.Pct")
+colnames(ptsp.sds) <- c("Divisions", "Points.Pct.SD")
 
 win.vars <- cbind.data.frame(division.names, wins.var)
-colnames(win.vars) <- c("Divisions", "Wins")
+colnames(win.vars) <- c("Divisions", "Wins.Variance")
 
 loss.vars <- cbind.data.frame(division.names, losses.var)
-colnames(loss.vars) <- c("Divisions", "Losses")
+colnames(loss.vars) <- c("Divisions", "Losses.Variance")
 
 ol.vars <- cbind.data.frame(division.names, ols.var)
-colnames(ol.vars) <- c("Divisions", "OT.Losses")
+colnames(ol.vars) <- c("Divisions", "OT.Losses.Variance")
 
 pts.vars <- cbind.data.frame(division.names, pts.var)
-colnames(pts.vars) <- c("Divisions", "Points")
+colnames(pts.vars) <- c("Divisions", "Points.Variance")
 
 ptsp.vars <- cbind.data.frame(division.names, ptsp.var)
-colnames(ptsp.vars) <- c("Divisions", "Points.Pct")
+colnames(ptsp.vars) <- c("Divisions", "Points.Pct.Variance")
 
 # Average plots
 
@@ -120,7 +120,7 @@ p3 <- ggplot(ol.avgs, aes(x = Divisions, y = OT.Losses, fill = Divisions)) +
 
 p4 <- ggplot(stack.avgs2, aes(x = Divisions, y = value, fill = variable)) + 
   geom_bar(stat = "identity", position = "stack") + 
-  ylab("Average Games Played") + 
+  ylab("Games Played") + 
   ggtitle("Summary of Wins, Losses, and OT Losses (Average) By Division")
 
 p5 <- ggplot(stack.avgs2, aes(x = Divisions, y = value, fill = variable)) + 
@@ -180,60 +180,60 @@ p14 <- ggplot(ptsp.meds, aes(x = Divisions, y = Points.Pct, fill = Divisions)) +
 
 # Standard Deviation plots
 
-p15 <- ggplot(win.sds, aes(x = Divisions, y = Wins, fill = Divisions)) + 
+p15 <- ggplot(win.sds, aes(x = Divisions, y = Wins.SD, fill = Divisions)) + 
   geom_bar(stat = "identity") + 
-  geom_text(aes(label = round(Wins, 2))) + 
+  geom_text(aes(label = round(Wins.SD, 2))) + 
   ggtitle("Std. Dev. Wins By Division") + 
   guides(fill = FALSE)
 
-p16 <- ggplot(loss.sds, aes(x = Divisions, y = Losses, fill = Divisions)) + 
+p16 <- ggplot(loss.sds, aes(x = Divisions, y = Losses.SD, fill = Divisions)) + 
   geom_bar(stat = "identity") + 
-  geom_text(aes(label = round(Losses, 2))) + 
+  geom_text(aes(label = round(Losses.SD, 2))) + 
   ggtitle("Std. Dev. Losses By Division") + 
   guides(fill = FALSE)
 
-p17 <- ggplot(ol.sds, aes(x = Divisions, y = OT.Losses, fill = Divisions)) + 
+p17 <- ggplot(ol.sds, aes(x = Divisions, y = OT.Losses.SD, fill = Divisions)) + 
   geom_bar(stat = "identity") + 
-  geom_text(aes(label = round(OT.Losses, 2))) + 
+  geom_text(aes(label = round(OT.Losses.SD, 2))) + 
   ggtitle("Std. Dev. OT Losses By Division") + 
   guides(fill = FALSE)
 
-p18 <- ggplot(pts.sds, aes(x = Divisions, y = Points, fill = Divisions)) + 
+p18 <- ggplot(pts.sds, aes(x = Divisions, y = Points.SD, fill = Divisions)) + 
   geom_bar(stat = "identity") + 
   ggtitle("Std. Dev. Points By Division") + 
   guides(fill = FALSE)
 
-p19 <- ggplot(ptsp.sds, aes(x = Divisions, y = Points.Pct, fill = Divisions)) + 
+p19 <- ggplot(ptsp.sds, aes(x = Divisions, y = Points.Pct.SD, fill = Divisions)) + 
   geom_bar(stat = "identity") + 
   ggtitle("Std. Dev. Points % By Division") + 
   guides(fill = FALSE)
 
 # Variance plots
 
-p20 <- ggplot(win.vars, aes(x = Divisions, y = Wins, fill = Divisions)) + 
+p20 <- ggplot(win.vars, aes(x = Divisions, y = Wins.Variance, fill = Divisions)) + 
   geom_bar(stat = "identity") + 
-  geom_text(aes(label = round(Wins, 2))) + 
+  geom_text(aes(label = round(Wins.Variance, 2))) + 
   ggtitle("Variance Of Wins By Division") + 
   guides(fill = FALSE)
 
-p21 <- ggplot(loss.vars, aes(x = Divisions, y = Losses, fill = Divisions)) + 
+p21 <- ggplot(loss.vars, aes(x = Divisions, y = Losses.Variance, fill = Divisions)) + 
   geom_bar(stat = "identity") + 
-  geom_text(aes(label = round(Losses, 2))) + 
+  geom_text(aes(label = round(Losses.Variance, 2))) + 
   ggtitle("Variance Of Losses By Division") + 
   guides(fill = FALSE)
 
-p22 <- ggplot(ol.vars, aes(x = Divisions, y = OT.Losses, fill = Divisions)) + 
+p22 <- ggplot(ol.vars, aes(x = Divisions, y = OT.Losses.Variance, fill = Divisions)) + 
   geom_bar(stat = "identity") + 
-  geom_text(aes(label = round(OT.Losses, 2))) + 
+  geom_text(aes(label = round(OT.Losses.Variance, 2))) + 
   ggtitle("Variance Of OT Losses By Division") + 
   guides(fill = FALSE)
 
-p23 <- ggplot(pts.vars, aes(x = Divisions, y = Points, fill = Divisions)) + 
+p23 <- ggplot(pts.vars, aes(x = Divisions, y = Points.Variance, fill = Divisions)) + 
   geom_bar(stat = "identity") + 
   ggtitle("Variance Of Points By Division") + 
   guides(fill = FALSE)
 
-p24 <- ggplot(ptsp.vars, aes(x = Divisions, y = Points.Pct, fill = Divisions)) + 
+p24 <- ggplot(ptsp.vars, aes(x = Divisions, y = Points.Pct.Variance, fill = Divisions)) + 
   geom_bar(stat = "identity") + 
   ggtitle("Variance Of Points % By Division") + 
   guides(fill = FALSE)
