@@ -1,0 +1,122 @@
+---
+title: "Turn Down That Racket (You Crazy Kids)!"
+author: "Sean Barnett"
+date: "January 9, 2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(psych)
+library(reshape2)
+library(ggplot2)
+```
+
+## Music
+
+Yes, music. Those pleasant sounds that we enjoy, use to get pumped and also to relax, and for all manner of other reasons and no reason at all. As we'll see, the younger generation is generally in favor of music as well. Not much else to say here, so let's dive into some of the data.
+
+To start with, let's isolate just responses pertaining to music:
+
+```{r cleanup}
+yp_data <- read.csv("~/Documents/datasets/young_peeps/responses.csv")
+yp_music <- yp_data[,1:19]
+```
+
+And now to get an overview of the data...
+
+```{r describe}
+describe(yp_music)
+```
+
+NA values are removed by default, hence the different values for n.
+
+One thing that we can see right off the bat is that music is almost universally popular. A couple of genres show high mean values, indicating some general popularity, while the rest of the ratings are rather middling.
+
+All these numbers can be a bit dizzying. See below for a nice cluster of plots that sums up some of the important points:
+
+```{r facet_graph, message=FALSE, warning=FALSE}
+yp_music_r <- melt(yp_music)
+
+ggplot(yp_music_r, aes(x = value)) + 
+  geom_histogram() + 
+  facet_wrap(~ variable) + 
+  xlab("rating")
+```
+
+We melt the data into long form and can then plot this series of graphs for a neat comparison, where the stark differences in music preferences are rather appparent.
+
+Interestingly, many of these are flat or show somewhat of a normal distribution. Perhaps these genres inspire a considerable amount of indifference among the respondents. Whatever the reason, those genres are remarkably unpolarizing.
+
+The remainging genres, on the other hand, seem to invoke some rather strong feelings in the respondents. Pop and plain ol' Rock (no and/or Roll), are rather well-appreciated. Everything else gets a pretty negative review. As something of a metalhead/hard rocker myself, I find it interesting, if disheartening to a degree, that apparently only opera is less popular.
+
+Mid-tempo music trumps all, with a slight lean toward the faster stuff. Compared to the genre breakdowns, this seems like a particularly subjective measure. My mid-tempo and your mid-tempo might be two different things. Listing a sampling of a person's favorite songs and getting their BPM could be a means of making this measure more concrete.
+
+It would be interesting to get a random sampling of data for different age groups to see what kinds of music stick with people and to generally get an idea of how tastes change over time.
+
+## Things that go together
+
+It's not unreasonable to imagine that perhaps people may enjoy more than a single genre of music. I can say for certain that I do. Despite my own interests in hard rock and metal, I'm actually enjoying some chilled-out, downtempo electronic music as I write this up. I'm no unique snowflake, so let's investigate what musical genres overlap for others. First, we'll consider the following correlation table:
+
+```{r genre_corr}
+# Leaving out the columns simply stating musical preference and tempo
+genre_only <- yp_music[,3:19]
+cor(genre_only, use = "complete.obs")
+```
+
+Perhaps unsurprisingly, people seem to be rather into genres that could reasonably be considered to be similar. For example, Classical and Opera show strong correlations with each other, as do Rock, Metal/Hard Rock, and Punk. There are some others, as well some some more modest, but still reasonably strong correlations.
+
+What is perhaps more surprising is that there don't seem to be any strong negative correlations. This would seem to suggest that, rather than disliking non-preferred genres of music, respondents were simply more indifferent than anything. 
+
+Another possibility could have to do with the phrasing on the survey. Provided the intro page to this data sums up the phrasing for the preference scale accurately, where 1 is "Don't enjoy at all" and 5 is "Enjoy very much", that could influence answers to explain only positive correlations and small negative correlations at most. It would be interesting to see these results again with the survey picking the middle value as an indifferent response with different degrees of liking and disliking around it.
+
+Actually, I like that idea enough, let's consider what that might look like, in case I've misinterpreted the wording and 1-2 reflect negative responses, 4-5 being positive, and 3 being more or less neutral.
+
+```{r transform_and_corr}
+# Transform the data for another correlation
+transform_data <- function(x) {
+  if (x < 3) {
+    x <- -1
+  } else if (x > 3) { 
+    x <- 1
+  } else { 
+    x <- 0
+  }
+}
+
+ccgo <- genre_only[complete.cases(genre_only),]
+transform_data <- Vectorize(transform_data)
+t_data <- mapply(transform_data, ccgo)
+cor(t_data, use = "complete.obs")
+```
+
+For ease of dealing with data, we only use complete cases again (which is almost all of them). At least for the data as presented, this transformation doesn't seem to have done much. Correlation values in general are smaller, but we still see the same genre-clustering as before. It would still be interesting to see similar results with the survey re-taken with wording to express more like/dislike, rather than enjoy/don't enjoy, as was apparently done.
+
+## Musical Clusters
+
+If you'll indulge me, I'd like to finish this out with a quick look at some clustering. First, let's consider a case where we have a clustering check for all the genres. That would be 17 of them:
+
+```{r big_cluster, message=FALSE, warning=FALSE}
+set.seed(777)
+all_groups <- kmeans(ccgo, 17, nstart = 100)
+
+names(all_groups$size) <- colnames(ccgo)
+all_groups$size
+all_groups$betweenss / all_groups$totss
+```
+
+The entire object can be a bit unwieldy to work with, as can creating a table from this dataset. For this, I've kept to a small summary of relevant data. For the most part, the size gives us a relatively even distribution, save for a couple of large blips. It seems that the music most likely to evoke strong feelings (especially negative ones), comes out more prominent in the analysis...at least for the most part.
+
+We can see by the between SS divided by total SS that, at 44.67%, this isn't a particularly good fit, despite running algorithm with 100 different centroid starts.
+
+Out of curiosity, we try again, but grouping together genres of music that were similarly liked (higher correlation in correlation analysis). This should be about 12, but your mileage may vary, depending on where you feel the cutoff ought to be.
+
+```{r small_cluster, message=FALSE, warning=FALSE}
+set.seed(777)
+con_groups <- kmeans(ccgo, 12, nstart = 100)
+
+con_groups$size
+con_groups$betweenss / con_groups$totss
+```
+
+An even weaker fit. Very interesting...

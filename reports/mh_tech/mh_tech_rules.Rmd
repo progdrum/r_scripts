@@ -1,0 +1,146 @@
+---
+title: "A Cursory Analysis of Mental Health in the Tech Workplace"
+author: "Sean Barnett"
+date: "December 5, 2016"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(dplyr)
+library(ggplot2)
+library(arules)
+library(arulesViz)
+
+# Load the data and isolate the questions columns
+data_2014 <- read.csv("/home/sean/Documents/datasets/mental_health_tech/survey.csv")
+```
+
+## Mental Health and the Workplace
+
+Mental health can be a very sensitive topic of discussion...even more so when it is brought up in the context of the workplace. In this kernel, I explore, through the use of descriptive statistics and some basic association rule mining, what factors loom large in the minds of workers in the tech industry.
+
+The data is already loaded. To begin with, let's isolate columns pertaining to survey responses and prepare them for plotting. 
+
+```{r clean_and_plot, warning=FALSE}
+# Data is loaded in variable called "data_2014"
+data_2014_rm <- 
+  data_2014[,!names(data_2014) %in% c("Age", "Timestamp", "comments")]
+questions_only <- data_2014_rm[,5:24]
+
+# Get a collection of tables for the responses
+response_tables <- 
+  lapply(questions_only, function(Response) as.data.frame(table(Response)))
+
+# Add names of questions for each for plotting purposes
+plot_tables <- 
+  lapply(seq_along(response_tables), 
+         function(x) mutate(response_tables[[x]], name = names(response_tables)[x]))
+
+all_questions <- bind_rows(plot_tables)
+all_questions
+```
+
+We now have a cleaned-up and prepped set of data. In the next section, we can explore these in a a series of bar charts.
+
+## Pillars of Mental Health (Well, Colored Bars Anyway!)
+
+To make things a little bit easier to follow, I have broken the charts down by the number of available responses for each. Questions with two responses get one chart, three get another, and so on.
+
+```{r response_charts}
+# Generate plots for different response types
+binary <- 
+  c("family_history", "treatment", "remote_work", "tech_company", "obs_consequence")
+trinary <-
+  c("benefits", "care_options", "wellness_program", "seek_help", "anonymity", 
+    "mental_health_consequence", "phys_health_consequence", "coworkers", "supervisor", 
+    "mental_health_interview", "phys_health_interview", "mental_vs_physical")
+
+two_resp <- ggplot(data = all_questions[all_questions$name %in% binary,]) + 
+  geom_bar(aes(x = name, y = Freq, fill = Response), 
+           stat = "identity", position = "dodge") + scale_fill_brewer(palette = "Dark2") + 
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))
+three_resp <- ggplot(data = all_questions[all_questions$name %in% trinary,]) + 
+  geom_bar(aes(x = name, y = Freq, fill = Response), 
+           stat = "identity", position = "dodge") + scale_fill_brewer(palette = "Dark2") + 
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))
+four_resp <- ggplot(data = all_questions[all_questions$name == "work_interfere",]) + 
+  geom_bar(aes(x = name, y = Freq, fill = Response), 
+           stat = "identity", position = "dodge") + scale_fill_brewer(palette = "Dark2")
+five_resp <- ggplot(data = all_questions[all_questions$name == "leave",]) + 
+  geom_bar(aes(x = name, y = Freq, fill = Response), 
+           stat = "identity", position = "dodge") + scale_fill_brewer(palette = "Dark2")
+six_resp <- ggplot(data = all_questions[all_questions$name == "no_employees",]) + 
+  geom_bar(aes(x = name, y = Freq, fill = Response), 
+           stat = "identity", position = "dodge") + scale_fill_brewer(palette = "Dark2")
+```
+
+A lot of repeated code here. It's not very pretty, but it will do the job for now. More importantly, we can now begin to see what this might tell us. Let's start with binary responses:
+
+```{r binary_response, echo=FALSE}
+plot(two_resp)
+```
+
+These response fields have nothing in common other than that they appeared on the survey and that they have two possible responses, yes and no. Unsurprisingly, most of our tech workers work in tech companies. Though it doesn't necessarily have to be the case, it is hardly a surprise. Interestingly, though a majority report no family history of mental illness, just over half have sought treatment for a mental health condition themselves.
+
+Let's dig into 3-valued responses and see if they can illuminate things further:
+
+```{r ternary_response, echo=FALSE}
+plot(three_resp)
+```
+
+There are more questions with three possible answers than any other kind. It is with these questions that we also begin to see the possibility of stigma. Considerably more people apparently think that mentioning mental health issues could result in negative consequences than physical. Additionally, more would mention physical ailments in an interview than mental. Some of this might be down to the fact that tech jobs tend to be more mentally-oriented, and so mental illness is considerably more disabling than the physical. 
+
+It seems though, given the stigma associated with mental health and the lack of information employees have (anonymity, benefits) and the lack of information that employers are providing (seek_help, wellness_program), there is the possiblity many are missing out on potentially beneficial treatment. On the bright side, most would be willing to discuss with at least some supervisors and coworkers. This could be a means to missing information.
+
+The remaining groups have but one question each with them. Let's consider them together:
+
+```{r the_rest, echo=FALSE}
+plot(four_resp)
+plot(five_resp)
+plot(six_resp)
+```
+
+Continuing with the theme of information deficit, let's consider the middle plot. Though some know how easily they could take leave for mental health reasons (and fortunately, for most of them, it's not too difficult), most simply don't know.
+
+If we think back to the first set of plots, roughly half had not sought mental health treatment; so for many of those who don't know, it may well be that it simply never crossed their minds because it is not a concern. Leave data for physical ailments would make for an interesting comparison here.
+
+Looking at the top plot, most are bothered on occasion by mental conditions. Suffice to say, this isn't much surprise, considering the number that have sought treatment.
+
+The last plot is simply company size. It seems the overwhelming majority work in small, medium-small, or gigantic companies.
+
+## Mining for Rules
+
+Lately, I've thought a good bit about experimenting with some association rule mining. This data set seemed as good as anyway to work with so, if you'll indulge me, I would like to at least do some cursory rule mining for a start.
+
+Let's examine some frequent itemsets:
+
+```{r frequent_itemsets}
+itemsets <- apriori(questions_only, 
+                    parameter = list(target = "frequent", minlen = 2))
+itemsets.sorted <- sort(itemsets)
+inspect(head(itemsets.sorted, 10))
+inspect(tail(itemsets.sorted, 10))
+```
+
+Looking at the top 10 item sets (ordered by support), there doesn't seem to be much of interest. More interestingly, looking at the last 10, we see some rather large groups of answers that occur at least 10% of the time. Of this group, from those that sought treatment, they seem to also work in low-support environments. By low support, I mean information not provided about wellness programs, unknown or no anonymity, etc. It seems that a belief that there would not be negative consequences for mention of a physical ailment is common.
+
+I'm interested now to see what kinds of rules we end up with. Let's look for high confidence (>= 90%) and at least as much support as our least supported item sets (>= 10%).
+
+```{r assoc_rules1}
+rules <- apriori(questions_only, parameter = list(conf = 0.9, supp = 0.1))
+plot(rules)
+```
+
+Looking at the plot, it seems that responses that are most dependent (the so-called "lift") for these confidence and support parameters sit at ~0.1 support and 0.92-0.94 confidence. Let's sort by this value and see what we get.
+
+```{r assoc_rules2}
+rules.sorted <- sort(rules, by = "lift")
+inspect(head(rules.sorted))
+```
+
+All of the top 10 (by lift) concern whether or not an employee would surely discuss their mental health with their supervisor(s). Unsurprisingly, these are people who would also discuss with their coworkers, don't believe there would be negative consequences for doing so (similarly with physical conditions), and often have not observed negative consequences for doing so. These conditions, especially in the first two rules occur about 10% of the time, but over 94% of the time those conditions come together.
+
+## Wrap it Up
+
+This has only been a cursory exploration of the mental health survey data. Even so, some interesting information came out of it. As I compiled this report, a number of other directions to go with this occurred to me. Keep an eye out for re-runs of this report with just data for people who sought treatment and those who didn't. Also considering the self-employed compared to those who are not. There are numerous ways to carve this data up that may yet reveal further insights and provide clarity where this report failed to.

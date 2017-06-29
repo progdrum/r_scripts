@@ -1,0 +1,146 @@
+---
+title: "Death Metal Sentiment Analysis with Tidytext"
+author: "Sean Barnett"
+date: "March 26, 2017"
+output: 
+  html_document:
+    toc: true
+    code_folding: hide
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Motivation
+
+I have taken a fair amount of interest in text mining for a little while now. It is endlessly fascinating to me the wealth of knowledge that can be extracted from unstructured data, such as that found in many texts.
+
+Recently, I attended a talk regarding the _tidytext_ package. All in all, I found the package very intriguing and wanted to get to work on trying it out. A collection of death metal album reviews seemed as suitable a corpus as anything else.
+
+This is far from a complete foray into the wonders of the _tidytext_ package. I have lots more to learn yet, but I thought some basic data mining and sentiment analysis might be a good place to start.
+
+## Loading the Data and Initial Processing
+
+```{r load_and_extract, message=FALSE}
+library(readr)
+library(dplyr)
+library(tidytext)
+library(SnowballC)
+library(ggplot2)
+library(psych)
+
+# Read file and scrub punctuation
+death_metals <- read_csv("reviews.csv")
+death_metals$content <- gsub("[!\\.\\?\\|]", " ", death_metals$content)
+
+# Tokenize reviews and remove stop words
+rev_tokens <- death_metals %>% 
+  group_by(title, score) %>% 
+  unnest_tokens(word, content) %>% 
+  anti_join(stop_words)
+stemmed_tokens <- rev_tokens %>% ungroup %>% mutate(word = wordStem(word))
+```
+
+The _tidytext_ package works with pipes, like many other packages and, used in conjunction with _dplyr_, one can quickly manipulate textual data into however it is needed. 
+
+In the few lines of code above, I've removed some basic punctuation present in the review text, tokenized it into individual words, grouped it by review (using _title_ and _score_) and removed stop words. For good measure, I've also collected stemmed versions of the words. The _tidytext_ package does not (at the time of this writing) have its own stemming algorithms built in, that I'm aware of, but this was easy enough to accomplish using the _SnowballC_ package.
+
+## Word Counts
+
+Below, three word counts are generated. I wanted to keep one set of counts grouped by review. The other two take total counts and total counts with stemmed words.
+
+```{r counts}
+# Get word counts
+group_count <- rev_tokens %>% count(word, sort = TRUE)
+ungrouped_count <- rev_tokens %>% ungroup %>% count(word, sort = TRUE)
+stemmed_count <- stemmed_tokens %>% count(word, sort = TRUE)
+
+# Plots! PLots! Plots, plots plots plots! (Also, Plots!)
+ggplot(head(ungrouped_count, 10), aes(x = reorder(word, n), y = n)) + 
+  geom_bar(stat = "identity") + 
+  coord_flip() + 
+  xlab("Word") + 
+  ylab("Occurrences")
+
+ggplot(head(stemmed_count, 10), aes(x = reorder(word, n), y = n)) + 
+  geom_bar(stat = "identity") + 
+  coord_flip() + 
+  xlab("Word") + 
+  ylab("Occurrences")
+```
+
+Using the total counts, I've generated two plots of the 10 most frequently occurring words in reviews. The first plot shows counts for the words as they appear in the review...no stemming performed. Being as these are album reviews, the top word is far from a surprise. Overall, this is pretty much what we might expect for death metal albume reviews.
+
+There is an issue with the first plot, however. Both "song" and "songs" appear as top words. Since these are very nearly the same word, it doesn't provide with much more useful information to have both in the top count. This is part of the motivation for stemming. When we consider just the root of each word, we can count the words with the same base as one and glean some additional, potentially useful, information.
+
+In the second plot, we see the same top 10 word count, but using the stemmed words. Overall counts climb, implying other word variants, such as "albums", "bands", etc. are now incorporatd. Also, "song(s)"" jumps into third place and "death" drops to fifth. There are apparently not too many variants of "death" used in the reviews. The presence of "vocal", "guitar", and "riff" suggest some elements to death metal music that are important to the reviewers.
+
+## Sentiment Analysis
+
+Next, I wanted to explore some of the sentiment analysis facilities that _tidytext_ has to offer. The _tidytext_ package has a few sentiment lexicons that come built-in with the package. To start with for this analysis, I opted for AFINN. This lexicon rates words on a -5 to +5 scale of negativity/postivity. I appreciate how this lexicon has some degree of gradation worked into it.
+
+```{r prep_sentiments}
+# Sort group counts by title, then join with sentiments
+sorted_counts <- group_count %>% arrange(title)
+afinn <- get_sentiments("afinn") %>% rename(sentiment = score)
+group_sentiments <- sorted_counts %>% 
+  inner_join(afinn, by = "word")
+
+# Get aggregated scores per review
+aggs <- summarize(group_sentiments,
+                  avg_sent = mean(sentiment),
+                  med_sent = median(sentiment),
+                  tot_sent = sum(sentiment))
+
+# Plot averages and get summary statistics
+avg_splot <- ggplot(data = aggs, aes(x = avg_sent, y = score)) + geom_point()
+med_splot <- ggplot(data = aggs, aes(x = med_sent, y = score)) + geom_point()
+tot_splot <- ggplot(data = aggs, aes(x = tot_sent, y = score)) + geom_point()
+aa_summary <- aggs %>% 
+  ungroup %>% 
+  select(score, avg_sent, med_sent, tot_sent) %>% 
+  describe
+```
+
+In the above code snippet is where the counts by review (grouped_counts) come in. The goal is to get an idea of how a review's sentiment corresponds with the score given by the reviewer. For each review, I have compiled the average, median, and total of sentiment scores in each review, and generated plots for each. I've also collected summary statistics for sentiment across words appearing in reviews as a whole, as well as review scores.
+
+### The Plots
+
+```{r sentiment_plots, message=FALSE}
+avg_splot
+med_splot
+tot_splot
+```
+
+We get a couple of angry-looking tornadoes and some dark bars. All three of these plots show us that sentiment is skewing negative. More of the positive sentiment is naturally associated with more positive scores, hence widening, particularly toward the right, near the top of the score scale. We also see a slight bias of more negativity for the lowest scores.
+
+Interestingly, one of the best-scored reviews also had the lowest median sentiment score. Why these counterintuitive results? It's possible that much of the language surrounding metal, and death metal in particular, is just that negative, at least according to the AFINN lexicon. A lexicon scored by a group of metalheads might have yielded different results.
+
+Of course, it's also possible that it is at least due in part to the words and scores available in the lexicon used. Let's investigate that really quickly:
+
+```{r lexicon_check}
+ggplot(data = get_sentiments("afinn")) + geom_density(aes(x = score))
+```
+
+Aha! Out of the 2476 words in the AFINN lexicon (a rather limited vocabulary), it would seem that there are quite a few more negative words than positive. There are very few at the extremes, but also very few that are rated neutral. We see mirror peaks just shy of +/-2.5, but what appears to be many more negative words.
+
+Indeed, it seems that the lexicon in use may be at least partly to blame for skewing the sentiment scores negatively.
+
+### Summary
+
+In the previous section, I also generated some summary statistics. Let's have a look at those now.
+
+```{r sentiment_summary, echo=FALSE}
+aa_summary
+```
+
+Here again, we can see that things skew toward the negative side of things, but not outrageously so.
+
+## Conclusion
+
+There are some improvements that can certainly be made with this analysis. For one thing, trying out different lexicons (perhaps with more words) could enhance what has been accomplished here.
+
+Besides word-based sentiment analysis, it might also be of considerable benefit to look into bigram and trigram sentiment analysis, and even see about getting the sentiment for entire sentences. Such measures might help to achieve a more nuanced look into these reviews.
+
+Overall, this has been a fun little project to get started with using _tidytext_. There are many more capabilities I have yet to explore, some of which may find there way into further kernels that I produce. I also look forward to other activities I can use this data with, including trying to predict review scores from sentiment measures and the like.
